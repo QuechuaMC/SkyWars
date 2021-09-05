@@ -4,6 +4,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.scheduler.BukkitRunnable;
 
 import fr.kinjer.skywars.SkyWars;
+import fr.kinjer.skywars.listener.ScoreboardListener;
 import fr.kinjer.skywars.state.SkyState;
 
 public class StartingTimer extends BukkitRunnable{
@@ -17,13 +18,16 @@ public class StartingTimer extends BukkitRunnable{
 	
 	@Override
 	public void run() {
+		ScoreboardListener.scoreboard("Lancement dans : " + timer + "s");
 		if(timer == 10 || timer > 0 && timer <= 5) {
 			main.state = SkyState.STARTING;
 			Bukkit.broadcastMessage("Le jeu commence dans " + timer + "s !");
+			
 		}
 		
 		if(timer <= 0) {
 			Bukkit.broadcastMessage("Le jeu a commencé ! Bon jeu !");
+			ScoreboardListener.scoreboard("Jeu lancé");
 			main.state = SkyState.PLAYING;
 			main.start();
 			cancel();

@@ -1,5 +1,7 @@
 package fr.kinjer.skywars;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -10,16 +12,24 @@ import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Chest;
 import org.bukkit.enchantments.Enchantment;
+import org.bukkit.entity.Entity;
+import org.bukkit.entity.Item;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.potion.Potion;
+import org.bukkit.potion.PotionEffect;
+import org.bukkit.potion.PotionEffectType;
 import org.bukkit.potion.PotionType;
 
+import fr.kinjer.skywars.command.SkyReloadCommand;
+import fr.kinjer.skywars.listener.ScoreboardListener;
 import fr.kinjer.skywars.listener.SkyWarsListener;
+import fr.kinjer.skywars.schem.Schematic;
 import fr.kinjer.skywars.state.SkyState;
+import fr.kinjer.skywars.utils.LoadSchematic;
 
 public class SkyWars extends JavaPlugin {
 	
@@ -35,16 +45,38 @@ public class SkyWars extends JavaPlugin {
 	
 	@Override
 	public void onEnable() {
-		System.out.println("The plugin SkyWars is on");
+		System.out.println("The plugin SkyWars is enable");
 		saveDefaultConfig();
 		getConfig().options().copyDefaults(true);
 		saveConfig();
 		
 		world = getServer().getWorld(getConfig().getString("name_world"));
 		playersToStart = getConfig().getInt("max_players");
-
-		locs.clear();
 		state = SkyState.WAITING;
+
+		initSkyWars();
+		
+		getServer().getPluginManager().registerEvents(new SkyWarsListener(this), this);
+		getServer().getPluginManager().registerEvents(new ScoreboardListener(this), this);
+//		getCommand("skyload").setExecutor(new SkyReloadCommand());
+	}
+	
+	@Override
+	public void onDisable() {
+		System.out.println("The plugin SkyWars is disable");
+	}
+	
+	private void initSkyWars() {
+		world.getEntities().stream().filter(Item.class::isInstance).forEach(Entity::remove);
+		try {
+			Schematic schem = LoadSchematic.loadSchematic(new File(getDataFolder().getAbsolutePath()+"/schems/skywars01.schematic"));
+			LoadSchematic.pasteSchematic(world, new Location(world, -41, 127, -43), schem);
+			System.out.println(schem);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		world.getBlockAt(1, 142, -1).setType(Material.ANVIL);
+		locs.clear();
 		pls.clear();
 		chests.clear();
 		chestsMiddle.clear();
@@ -137,19 +169,8 @@ public class SkyWars extends JavaPlugin {
 		itemsMiddle.add(new ItemStack(potionSpeed.splash().toItemStack(1)));
 		itemsMiddle.add(protItem);
 		itemsMiddle.add(powerItem);
-//		itemsMiddle.add(knockbackStick);
-		
-		
-		getServer().getPluginManager().registerEvents(new SkyWarsListener(this), this);
-//		getCommand("skyload").setExecutor(new SkyReloadCommand());
+		itemsMiddle.add(knockbackStick);
 	}
-	
-	@Override
-	public void onDisable() {
-		System.out.println("The plugin SkyWars is off");
-		
-	}
-	
 	
 	public void start() {
 		System.out.println("Nombre de locs : "+locs.size());
@@ -168,7 +189,8 @@ public class SkyWars extends JavaPlugin {
 		for(Location loc : chests) {
 			Random r = new Random();
 			int maxItems = 5;
-			loc.getBlock().setType(Material.CHEST);
+			if(loc.getBlock().getType() != Material.CHEST)
+				loc.getBlock().setType(Material.CHEST);
 			
 			Chest chest = (Chest) loc.getBlock().getState();
 			Inventory c = chest.getInventory();
@@ -183,7 +205,8 @@ public class SkyWars extends JavaPlugin {
 			allItems.addAll(itemsMiddle);
 			Random r = new Random();
 			int maxItems = 5;
-			loc.getBlock().setType(Material.CHEST);
+			if(loc.getBlock().getType() != Material.CHEST)
+				loc.getBlock().setType(Material.CHEST);
 			
 			Chest chest = (Chest) loc.getBlock().getState();
 			Inventory c = chest.getInventory();
@@ -197,11 +220,20 @@ public class SkyWars extends JavaPlugin {
 	
 	public void death(Player p) {
 		Location loc = new Location(world, 1.5D, 150D, -0.5D, 90.0F, 90.0F);
+		clearInventory(p);
         p.setGameMode(GameMode.SPECTATOR);
+//        p.addPotionEffect(new PotionEffect(PotionEffectType.INVISIBILITY, 99999, 99));
         p.teleport(loc);
-        p.getInventory().clear();
         p.setHealth(20.0D);
         p.setFoodLevel(20);
+//        p.setFlying(true);
+//        p.setAllowFlight(true);
+	}
+	
+	public void clearInventory(Player p) {
+		p.getInventory().clear();
+		p.getInventory().setArmorContents(new ItemStack[] {new ItemStack(Material.AIR),new ItemStack(Material.AIR),new ItemStack(Material.AIR),new ItemStack(Material.AIR)});
+		
 	}
 	
 
